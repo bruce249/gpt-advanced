@@ -5,8 +5,10 @@ import { sendMessageHF, getMiniGptExplanationHF } from '../api/huggingface.js';
 import { sendMessageOllama, sendMessageWithImageOllama, getMiniGptExplanationOllama, checkOllamaStatus, getBestModel } from '../api/ollama.js';
 import { sendMessageOpenAI, sendMessageWithImageOpenAI, getMiniGptExplanationOpenAI } from '../api/openai.js';
 import { loadApiKeys, getActiveKey, getActiveProvider } from '../components/SettingsModal.jsx';
+import { buildDocumentContext } from '../utils/documentParser.js';
 
 const ChatContext = createContext();
+const DOCS_STORAGE_KEY = 'gpt-advanced-documents';
 
 const STORAGE_KEY = 'gpt-advanced-conversations';
 
@@ -27,11 +29,29 @@ function saveConversations(conversations) {
     }
 }
 
+function loadDocuments() {
+    try {
+        const data = localStorage.getItem(DOCS_STORAGE_KEY);
+        return data ? JSON.parse(data) : {};
+    } catch {
+        return {};
+    }
+}
+
+function saveDocuments(docs) {
+    try {
+        localStorage.setItem(DOCS_STORAGE_KEY, JSON.stringify(docs));
+    } catch (e) {
+        console.warn('Failed to save documents:', e);
+    }
+}
+
 export function ChatProvider({ children }) {
     const [conversations, setConversations] = useState(() => loadConversations());
     const [activeConversationId, setActiveConversationId] = useState(null);
     const [isStreaming, setIsStreaming] = useState(false);
     const [streamingText, setStreamingText] = useState('');
+    const [allDocuments, setAllDocuments] = useState(() => loadDocuments());
     const conversationsRef = useRef(conversations);
 
     useEffect(() => {
@@ -41,6 +61,31 @@ export function ChatProvider({ children }) {
     useEffect(() => {
         saveConversations(conversations);
     }, [conversations]);
+
+    useEffect(() => {
+        saveDocuments(allDocuments);
+    }, [allDocuments]);
+
+    // Get documents for the active conversation
+    const activeDocuments = activeConversationId ? (allDocuments[activeConversationId] || []) : [];
+
+    const addDocument = useCallback((convId, doc) => {
+        setAllDocuments(prev => {
+            const convDocs = prev[convId] || [];
+            return { ...prev, [convId]: [...convDocs, doc] };
+        });
+    }, []);
+
+    const removeDocument = useCallback((convId, docId) => {
+        setAllDocuments(prev => {
+            const convDocs = (prev[convId] || []).filter(d => d.id !== docId);
+            return { ...prev, [convId]: convDocs };
+        });
+    }, []);
+
+    const getDocumentsForConversation = useCallback((convId) => {
+        return allDocuments[convId] || [];
+    }, [allDocuments]);
 
     const activeConversation = conversations.find(c => c.id === activeConversationId) || null;
 
@@ -179,10 +224,15 @@ export function ChatProvider({ children }) {
                 ));
             };
 
+            // Build document context if documents are uploaded
+            const convDocs = allDocuments[convId] || [];
+            const docContext = buildDocumentContext(convDocs);
+            const augmentedText = docContext ? docContext + text : text;
+
             // Try the active key's provider
             let fullText;
             try {
-                fullText = await callProvider(activeKey, history, text, imageData, onChunk);
+                fullText = await callProvider(activeKey, history, augmentedText, imageData, onChunk);
             } catch (primaryError) {
                 console.warn(`Primary provider ${activeKey.provider} failed:`, primaryError.message);
 
@@ -204,7 +254,7 @@ export function ChatProvider({ children }) {
                                 }
                                 : c
                         ));
-                        fullText = await callProvider(fallbackKey, history, text, imageData, onChunk);
+                        fullText = await callProvider(fallbackKey, history, augmentedText, imageData, onChunk);
                         fallbackWorked = true;
                         break;
                     } catch (fbErr) {
@@ -303,6 +353,11 @@ export function ChatProvider({ children }) {
         getHighlightsForMessage,
         getMiniExplanation,
         stopStreaming,
+        // Document management
+        activeDocuments,
+        addDocument,
+        removeDocument,
+        getDocumentsForConversation,
     };
 
     return (

@@ -1,14 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
-import { HiOutlinePaperAirplane, HiOutlinePhoto, HiOutlineStop } from 'react-icons/hi2';
-import { IoClose } from 'react-icons/io5';
+import { HiOutlinePaperAirplane, HiOutlinePhoto, HiOutlineStop, HiOutlineDocumentPlus } from 'react-icons/hi2';
+import { IoClose, IoDocumentText } from 'react-icons/io5';
+import { parseDocument, SUPPORTED_EXTENSIONS } from '../utils/documentParser.js';
+import { DocumentChips } from './DocumentPanel.jsx';
+import DocumentPanel from './DocumentPanel.jsx';
 
 export default function ChatInput() {
-    const { sendUserMessage, isStreaming, stopStreaming } = useChat();
+    const { sendUserMessage, isStreaming, stopStreaming, activeConversationId, activeDocuments, addDocument, removeDocument } = useChat();
     const [input, setInput] = useState('');
     const [imageData, setImageData] = useState(null);
+    const [docLoading, setDocLoading] = useState(false);
+    const [showDocPanel, setShowDocPanel] = useState(false);
     const textareaRef = useRef(null);
     const fileInputRef = useRef(null);
+    const docInputRef = useRef(null);
 
     // Auto-resize textarea
     useEffect(() => {
@@ -66,12 +72,48 @@ export default function ChatInput() {
         e.target.value = '';
     };
 
+    const handleDocUpload = async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        setDocLoading(true);
+        let convId = activeConversationId;
+
+        for (const file of files) {
+            try {
+                const doc = await parseDocument(file);
+                // If no conversation yet, we'll add docs once the message creates one
+                if (convId) {
+                    addDocument(convId, doc);
+                }
+            } catch (err) {
+                alert(`Error parsing "${file.name}": ${err.message}`);
+            }
+        }
+
+        setDocLoading(false);
+        e.target.value = '';
+    };
+
+    const handleRemoveDoc = (docId) => {
+        if (activeConversationId) {
+            removeDocument(activeConversationId, docId);
+        }
+    };
+
     const removeImage = () => {
         setImageData(null);
     };
 
     return (
         <div className="chat-input-area">
+            {showDocPanel && (
+                <DocumentPanel
+                    documents={activeDocuments}
+                    onRemove={handleRemoveDoc}
+                    onClose={() => setShowDocPanel(false)}
+                />
+            )}
             <div className="chat-input-wrapper">
                 {imageData && (
                     <div className="image-preview-container">
@@ -83,6 +125,11 @@ export default function ChatInput() {
                         </div>
                     </div>
                 )}
+
+                {activeDocuments.length > 0 && (
+                    <DocumentChips documents={activeDocuments} onRemove={handleRemoveDoc} />
+                )}
+
                 <div className={`chat-input-box ${imageData ? 'has-preview' : ''}`}>
                     <div className="chat-input-actions-left">
                         <button
@@ -100,6 +147,36 @@ export default function ChatInput() {
                             onChange={handleImageUpload}
                             style={{ display: 'none' }}
                         />
+                        <button
+                            className={`input-action-btn ${activeDocuments.length > 0 ? 'has-docs' : ''}`}
+                            onClick={() => docInputRef.current?.click()}
+                            title="Upload document"
+                            disabled={isStreaming || docLoading}
+                        >
+                            {docLoading ? (
+                                <span className="doc-loading-spinner" />
+                            ) : (
+                                <HiOutlineDocumentPlus style={{ fontSize: '20px' }} />
+                            )}
+                        </button>
+                        <input
+                            type="file"
+                            ref={docInputRef}
+                            accept={SUPPORTED_EXTENSIONS}
+                            onChange={handleDocUpload}
+                            multiple
+                            style={{ display: 'none' }}
+                        />
+                        {activeDocuments.length > 0 && (
+                            <button
+                                className="input-action-btn doc-count-btn"
+                                onClick={() => setShowDocPanel(!showDocPanel)}
+                                title="View uploaded documents"
+                            >
+                                <IoDocumentText style={{ fontSize: '16px' }} />
+                                <span className="doc-count-badge">{activeDocuments.length}</span>
+                            </button>
+                        )}
                     </div>
                     <textarea
                         ref={textareaRef}
@@ -107,7 +184,9 @@ export default function ChatInput() {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Message GPT Advanced..."
+                        placeholder={activeDocuments.length > 0
+                            ? "Ask about your documents..."
+                            : "Message GPT Advanced..."}
                         rows={1}
                         disabled={isStreaming}
                     />

@@ -1930,3 +1930,226 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* ========================================
+   Document Upload — RAG Feature
+   ======================================== */
+
+/* Document chips in input area */
+.doc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px 0;
+}
+
+.doc-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  color: var(--text-secondary);
+  animation: fadeIn 0.2s ease;
+}
+
+.doc-chip-icon {
+  font-size: 14px;
+}
+
+.doc-chip-name {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-chip-remove {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  font-size: 14px;
+  transition: color var(--transition-fast);
+}
+
+.doc-chip-remove:hover {
+  color: #ef4444;
+}
+
+/* Document upload button states */
+.input-action-btn.has-docs {
+  color: var(--accent-mini-gpt);
+}
+
+.doc-count-btn {
+  position: relative;
+  gap: 2px;
+}
+
+.doc-count-badge {
+  background: var(--accent-mini-gpt);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.doc-loading-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--accent-mini-gpt);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Document panel */
+.doc-panel {
+  position: absolute;
+  bottom: 100%;
+  left: 16px;
+  right: 16px;
+  max-width: 500px;
+  margin-bottom: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--bg-tertiary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: panelSlideIn 0.2s ease;
+  z-index: 50;
+}
+
+.doc-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--bg-tertiary);
+}
+
+.doc-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--accent-mini-gpt);
+}
+
+.doc-panel-close {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.doc-panel-close:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.doc-panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.doc-panel-empty p {
+  font-size: 14px;
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.doc-panel-empty span {
+  font-size: 12px;
+}
+
+.doc-panel-body {
+  padding: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.doc-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.doc-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.doc-item-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.doc-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.doc-item-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-item-meta {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 1px;
+}
+
+.doc-item-remove {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  display: flex;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.doc-item-remove:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
