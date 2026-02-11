@@ -3,6 +3,7 @@ import { HiOutlineKey, HiOutlinePlus, HiOutlineTrash, HiOutlineCheck, HiOutlineX
 import { IoClose } from 'react-icons/io5';
 import { RiOpenaiLine } from 'react-icons/ri';
 import { SiGooglegemini } from 'react-icons/si';
+import { loadNewsKeys, saveNewsKeys } from '../api/news.js';
 
 const PROVIDERS = {
     openai: {
@@ -148,13 +149,21 @@ export default function SettingsModal({ isOpen, onClose }) {
     const [newLabel, setNewLabel] = useState('');
     const [newModel, setNewModel] = useState('');
     const [activeKeyId, setActiveKeyId] = useState('');
+    const [newsKeys, setNewsKeys] = useState({});
 
     useEffect(() => {
         if (isOpen) {
             setKeys(loadApiKeys());
             setActiveKeyId(getActiveProvider() || '');
+            setNewsKeys(loadNewsKeys());
         }
     }, [isOpen]);
+
+    const handleNewsKeyChange = (field, value) => {
+        const updated = { ...newsKeys, [field]: value };
+        setNewsKeys(updated);
+        saveNewsKeys(updated);
+    };
 
     const handleAddKey = () => {
         if (!newKey.trim()) return;
@@ -370,6 +379,34 @@ export default function SettingsModal({ isOpen, onClose }) {
                             Add API Key
                         </button>
                     )}
+
+                    {/* News API Keys Section */}
+                    <div className="settings-section-divider" />
+                    <div className="settings-subtitle">
+                        <span>📰</span> News API Keys
+                    </div>
+                    <p className="settings-description" style={{ marginTop: 0 }}>
+                        Optional — Reddit news works without any key. Add NewsAPI for more sources.
+                    </p>
+
+                    <div className="news-keys-form">
+                        <div className="form-group">
+                            <label>
+                                📰 NewsAPI.org
+                                <a href="https://newsapi.org/register" target="_blank" rel="noopener noreferrer" className="key-help-link">Get free key →</a>
+                            </label>
+                            <input
+                                type="password"
+                                className="form-input"
+                                value={newsKeys.newsapi || ''}
+                                onChange={e => handleNewsKeyChange('newsapi', e.target.value)}
+                                placeholder="Your NewsAPI.org key"
+                            />
+                        </div>
+                        <div className="news-keys-note">
+                            ℹ️ Reddit news & Open-Meteo weather work without any API key. Keys are saved locally in your browser.
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

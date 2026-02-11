@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
-import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineChatBubbleLeftRight, HiOutlineCog6Tooth } from 'react-icons/hi2';
+import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineChatBubbleLeftRight, HiOutlineCog6Tooth, HiOutlineNewspaper } from 'react-icons/hi2';
 import { RiSideBarLine } from 'react-icons/ri';
 
-export default function Sidebar({ isOpen, onToggle, onOpenSettings }) {
+export default function Sidebar({ isOpen, onToggle, onOpenSettings, onOpenNews }) {
     const {
         conversations,
         activeConversationId,
@@ -159,6 +159,10 @@ export default function Sidebar({ isOpen, onToggle, onOpenSettings }) {
                 </div>
                 {/* Settings button at bottom */}
                 <div className="sidebar-footer">
+                    <button className="sidebar-settings-btn news-btn" onClick={onOpenNews}>
+                        <HiOutlineNewspaper />
+                        <span>News & Weather</span>
+                    </button>
                     <button className="sidebar-settings-btn" onClick={onOpenSettings}>
                         <HiOutlineCog6Tooth />
                         <span>Settings & API Keys</span>

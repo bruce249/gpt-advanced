@@ -6,7 +6,7 @@ import { parseDocument, SUPPORTED_EXTENSIONS } from '../utils/documentParser.js'
 import { DocumentChips } from './DocumentPanel.jsx';
 import DocumentPanel from './DocumentPanel.jsx';
 
-export default function ChatInput() {
+export default function ChatInput({ prefillMessage, onPrefillUsed }) {
     const { sendUserMessage, isStreaming, stopStreaming, activeConversationId, activeDocuments, addDocument, removeDocument } = useChat();
     const [input, setInput] = useState('');
     const [imageData, setImageData] = useState(null);
@@ -15,6 +15,17 @@ export default function ChatInput() {
     const textareaRef = useRef(null);
     const fileInputRef = useRef(null);
     const docInputRef = useRef(null);
+
+    // Handle prefill from News "Ask AI" button
+    useEffect(() => {
+        if (prefillMessage) {
+            setInput(prefillMessage);
+            onPrefillUsed?.();
+            if (textareaRef.current) {
+                textareaRef.current.focus();
+            }
+        }
+    }, [prefillMessage]);
 
     // Auto-resize textarea
     useEffect(() => {

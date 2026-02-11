@@ -7,7 +7,7 @@ import MiniGpt, { MiniGptTooltip } from './MiniGpt.jsx';
 import { RiSideBarLine } from 'react-icons/ri';
 import { HiOutlineSparkles } from 'react-icons/hi2';
 
-export default function ChatArea({ sidebarOpen, onToggleSidebar }) {
+export default function ChatArea({ sidebarOpen, onToggleSidebar, prefillMessage, onPrefillUsed }) {
     const { activeConversation, isStreaming } = useChat();
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
@@ -105,7 +105,7 @@ export default function ChatArea({ sidebarOpen, onToggleSidebar }) {
             )}
 
             {/* Chat Input */}
-            <ChatInput />
+<ChatInput prefillMessage={prefillMessage} onPrefillUsed={onPrefillUsed} />
 
             {/* Mini GPT Tooltip (appears on text selection) */}
             <MiniGptTooltip
