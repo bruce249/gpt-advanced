@@ -1,5 +1,7 @@
 import { loadApiKeys, getActiveKey } from '../components/SettingsModal.jsx';
 
+const HF_BASE_URL = 'https://router.huggingface.co/v1/chat/completions';
+
 function getHFKey() {
     const active = getActiveKey();
     if (active && active.provider === 'huggingface') return { key: active.apiKey, model: active.model };
@@ -14,52 +16,53 @@ function getHFKey() {
 const SYSTEM_PROMPT = `You are GPT Advanced, a helpful, creative, and intelligent AI assistant. You provide clear, accurate, and detailed answers. Format your responses using Markdown when helpful.`;
 
 /**
- * Send a text message via Hugging Face Inference API
+ * Extract text from HF chat completion response (handles DeepSeek reasoning_content too)
+ */
+function extractResponseText(data) {
+    const choice = data.choices?.[0]?.message;
+    if (!choice) return null;
+    // Some models (DeepSeek R1) put content in reasoning_content instead of content
+    return choice.content || choice.reasoning_content || null;
+}
+
+/**
+ * Send a text message via Hugging Face Inference API (router.huggingface.co)
  */
 export async function sendMessageHF(history, userMessage, onChunk) {
     const config = getHFKey();
     if (!config) throw new Error('No Hugging Face API key configured. Add one in Settings.');
 
-    const modelUrl = `https://api-inference.huggingface.co/models/${config.model || 'mistralai/Mistral-7B-Instruct-v0.3'}`;
+    const model = config.model || 'meta-llama/Llama-3.1-8B-Instruct';
 
-    // Format conversation for Mistral instruct format
-    let prompt = `<s>[INST] ${SYSTEM_PROMPT}\n\n`;
+    const messages = [
+        { role: 'system', content: SYSTEM_PROMPT },
+        ...history.map(msg => ({ role: msg.role, content: msg.content })),
+        { role: 'user', content: userMessage },
+    ];
 
-    for (const msg of history) {
-        if (msg.role === 'user') {
-            prompt += `${msg.content} [/INST]`;
-        } else {
-            prompt += ` ${msg.content}</s>[INST] `;
-        }
-    }
-
-    prompt += `${userMessage} [/INST]`;
-
-    const response = await fetch(modelUrl, {
+    const response = await fetch(HF_BASE_URL, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${config.key}`,
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            inputs: prompt,
-            parameters: {
-                max_new_tokens: 2048,
-                temperature: 0.7,
-                top_p: 0.95,
-                return_full_text: false,
-                stream: false,
-            },
+            model,
+            messages,
+            max_tokens: 2048,
+            temperature: 0.7,
+            top_p: 0.95,
+            stream: false,
         }),
     });
 
     if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.error || 'Hugging Face API error');
+        throw new Error(error.error?.message || error.error || 'Hugging Face API error');
     }
 
     const data = await response.json();
-    const text = data[0]?.generated_text || 'Sorry, I could not generate a response.';
+    const text = extractResponseText(data) || 'Sorry, I could not generate a response.';
 
     // Simulate streaming for consistent UX
     const words = text.split(' ');
@@ -80,29 +83,23 @@ export async function getMiniGptExplanationHF(selectedText, messageContext) {
     const config = getHFKey();
     if (!config) throw new Error('No Hugging Face API key configured.');
 
-    const modelUrl = `https://api-inference.huggingface.co/models/${config.model || 'mistralai/Mistral-7B-Instruct-v0.3'}`;
+    const model = config.model || 'meta-llama/Llama-3.1-8B-Instruct';
 
-    const prompt = `<s>[INST] Explain the following text concisely in under 150 words. If technical, simplify it.
-
-Selected text: "${selectedText}"
-
-Context: "${messageContext.substring(0, 300)}"
-
-Provide a brief, clear explanation. [/INST]`;
-
-    const response = await fetch(modelUrl, {
+    const response = await fetch(HF_BASE_URL, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${config.key}`,
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            inputs: prompt,
-            parameters: {
-                max_new_tokens: 300,
-                temperature: 0.5,
-                return_full_text: false,
-            },
+            model,
+            messages: [
+                { role: 'system', content: 'You explain text concisely in under 150 words. If technical, simplify it.' },
+                { role: 'user', content: `Explain this:\n\n"${selectedText}"\n\nContext: "${messageContext.substring(0, 300)}"` },
+            ],
+            max_tokens: 300,
+            temperature: 0.5,
+            stream: false,
         }),
     });
 
@@ -111,5 +108,5 @@ Provide a brief, clear explanation. [/INST]`;
     }
 
     const data = await response.json();
-    return data[0]?.generated_text || 'Could not generate explanation.';
+    return extractResponseText(data) || 'Could not generate explanation.';
 }

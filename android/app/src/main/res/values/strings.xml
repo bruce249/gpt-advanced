@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GPT Advanced</string>
+    <string name="title_activity_main">GPT Advanced</string>
+    <string name="package_name">com.gptadvanced.app</string>
+    <string name="custom_url_scheme">com.gptadvanced.app</string>
+</resources>

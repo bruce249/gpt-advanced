@@ -44,8 +44,20 @@ const PROVIDERS = {
         icon: '🤗',
         color: '#ff9d00',
         placeholder: 'hf_...',
-        models: ['mistralai/Mistral-7B-Instruct-v0.3', 'meta-llama/Llama-3-8B-Instruct'],
-        defaultModel: 'mistralai/Mistral-7B-Instruct-v0.3',
+        models: [
+            // Meta Llama models
+            'meta-llama/Llama-3.1-8B-Instruct',
+            'meta-llama/Llama-3.2-3B-Instruct',
+            'meta-llama/Llama-3.2-1B-Instruct',
+            'meta-llama/Llama-3.3-70B-Instruct',
+            // Qwen models
+            'Qwen/Qwen2.5-7B-Instruct',
+            'Qwen/Qwen2.5-72B-Instruct',
+            'Qwen/Qwen2.5-Coder-32B-Instruct',
+            // DeepSeek (reasoning model)
+            'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B',
+        ],
+        defaultModel: 'meta-llama/Llama-3.1-8B-Instruct',
         description: 'Open-source models — free tier available',
     },
 };
