@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
+import rehypeRaw from 'rehype-raw';
 import { HiOutlineClipboard, HiOutlineCheck, HiOutlineUser } from 'react-icons/hi2';
 import { HiOutlineSparkles } from 'react-icons/hi2';
 import { useChat } from '../context/ChatContext.jsx';
@@ -175,7 +176,7 @@ function HighlightedMarkdown({ content, highlights, onHighlightClick }) {
     return (
         <ReactMarkdown
             remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeHighlight]}
+            rehypePlugins={[rehypeRaw, rehypeHighlight]}
             components={components}
         >
             {content}

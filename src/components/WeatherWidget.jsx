@@ -1,93 +1,151 @@
-import React, { useState, useEffect } from 'react';
-import { fetchWeather, loadWeatherLocation, saveWeatherLocation } from '../api/weather.js';
-import { HiOutlineMapPin, HiOutlineMagnifyingGlass } from 'react-icons/hi2';
+import React, { useState, useEffect, useCallback } from 'react';
+import { fetchWeather, loadSavedCities, addSavedCity, removeSavedCity } from '../api/weather.js';
+import { HiOutlineMapPin, HiOutlineMagnifyingGlass, HiOutlinePlus, HiOutlineXMark } from 'react-icons/hi2';
 
-export default function WeatherWidget() {
+function WeatherCard({ cityName, onRemove }) {
     const [weather, setWeather] = useState(null);
-    const [city, setCity] = useState('');
-    const [savedCity, setSavedCity] = useState(() => loadWeatherLocation());
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (savedCity) {
-            loadWeather(savedCity);
-        }
-    }, []);
-
-    async function loadWeather(location) {
+        let cancelled = false;
         setLoading(true);
         setError('');
-        try {
-            const data = await fetchWeather(location);
-            setWeather(data);
-            setSavedCity(location);
-            saveWeatherLocation(location);
-        } catch (e) {
-            setError(e.message);
-        } finally {
-            setLoading(false);
-        }
+        fetchWeather(cityName)
+            .then(data => { if (!cancelled) setWeather(data); })
+            .catch(e => { if (!cancelled) setError(e.message); })
+            .finally(() => { if (!cancelled) setLoading(false); });
+        return () => { cancelled = true; };
+    }, [cityName]);
+
+    if (loading) {
+        return (
+            <div className="weather-card">
+                <div className="weather-card-loading">
+                    <span className="weather-card-loading-text">Loading {cityName}...</span>
+                </div>
+            </div>
+        );
     }
 
-    function handleSearch(e) {
-        e.preventDefault();
-        if (city.trim()) {
-            loadWeather(city.trim());
-            setCity('');
-        }
+    if (error) {
+        return (
+            <div className="weather-card weather-card-error-card">
+                <div className="weather-card-header">
+                    <span className="weather-card-city-name">❌ {cityName}</span>
+                    <button className="weather-card-remove" onClick={() => onRemove(cityName)} title="Remove">
+                        <HiOutlineXMark />
+                    </button>
+                </div>
+                <div className="weather-card-error-msg">{error}</div>
+            </div>
+        );
     }
+
+    if (!weather) return null;
 
     return (
-        <div className="weather-widget">
-            <form className="weather-search" onSubmit={handleSearch}>
-                <HiOutlineMapPin className="weather-search-icon" />
-                <input
-                    type="text"
-                    value={city}
-                    onChange={e => setCity(e.target.value)}
-                    placeholder={savedCity || 'Search city...'}
-                    className="weather-search-input"
-                />
-                <button type="submit" className="weather-search-btn" disabled={loading}>
-                    <HiOutlineMagnifyingGlass />
+        <div className="weather-card">
+            <div className="weather-card-header">
+                <div className="weather-card-location">
+                    <span className="weather-card-city-name">{weather.city}</span>
+                    <span className="weather-card-country">{weather.country}</span>
+                </div>
+                <button className="weather-card-remove" onClick={() => onRemove(cityName)} title="Remove city">
+                    <HiOutlineXMark />
                 </button>
-            </form>
-
-            {loading && <div className="weather-loading">Loading weather...</div>}
-            {error && <div className="weather-error">{error}</div>}
-
-            {weather && !loading && (
-                <div className="weather-content">
-                    <div className="weather-current">
-                        <div className="weather-main">
-                            <span className="weather-emoji-icon">{weather.icon}</span>
-                            <div className="weather-temp">{weather.temp}°C</div>
+            </div>
+            <div className="weather-card-main">
+                <span className="weather-card-icon">{weather.icon}</span>
+                <div className="weather-card-temp-block">
+                    <span className="weather-card-temp">{weather.temp}°</span>
+                    <span className="weather-card-desc">{weather.description}</span>
+                </div>
+            </div>
+            <div className="weather-card-stats">
+                <span>Feels {weather.feelsLike}°</span>
+                <span>💧 {weather.humidity}%</span>
+                <span>💨 {weather.wind} km/h</span>
+            </div>
+            {weather.forecast.length > 0 && (
+                <div className="weather-card-forecast">
+                    {weather.forecast.slice(0, 4).map((day, i) => (
+                        <div key={i} className="weather-card-fday">
+                            <span className="weather-card-fday-label">{day.day}</span>
+                            <span className="weather-card-fday-icon">{day.icon}</span>
+                            <span className="weather-card-fday-temp">{day.temp}°</span>
                         </div>
-                        <div className="weather-details">
-                            <div className="weather-city">
-                                {weather.city}, {weather.country}
-                            </div>
-                            <div className="weather-desc">{weather.description}</div>
-                            <div className="weather-meta">
-                                <span>Feels {weather.feelsLike}°</span>
-                                <span>💧 {weather.humidity}%</span>
-                                <span>💨 {weather.wind} km/h</span>
-                            </div>
-                        </div>
-                    </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
 
-                    {weather.forecast.length > 0 && (
-                        <div className="weather-forecast">
-                            {weather.forecast.map((day, i) => (
-                                <div key={i} className="forecast-day">
-                                    <span className="forecast-label">{day.day}</span>
-                                    <span className="forecast-emoji">{day.icon}</span>
-                                    <span className="forecast-temp">{day.temp}°</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+export default function WeatherWidget() {
+    const [savedCities, setSavedCities] = useState(() => loadSavedCities());
+    const [searchCity, setSearchCity] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
+
+    const handleAddCity = useCallback((e) => {
+        e?.preventDefault();
+        const name = searchCity.trim();
+        if (!name) return;
+        const updated = addSavedCity(name);
+        setSavedCities(updated);
+        setSearchCity('');
+        setShowSearch(false);
+    }, [searchCity]);
+
+    const handleRemoveCity = useCallback((cityName) => {
+        const updated = removeSavedCity(cityName);
+        setSavedCities(updated);
+    }, []);
+
+    return (
+        <div className="weather-widget-multi">
+            {/* Header */}
+            <div className="weather-widget-header">
+                <span className="weather-widget-title">🌤️ Weather</span>
+                <button
+                    className="weather-add-btn"
+                    onClick={() => setShowSearch(!showSearch)}
+                    title="Add city"
+                >
+                    <HiOutlinePlus />
+                    <span>Add City</span>
+                </button>
+            </div>
+
+            {/* Search bar */}
+            {showSearch && (
+                <form className="weather-add-form" onSubmit={handleAddCity}>
+                    <HiOutlineMapPin className="weather-add-form-icon" />
+                    <input
+                        type="text"
+                        value={searchCity}
+                        onChange={e => setSearchCity(e.target.value)}
+                        placeholder="Type city name and press Enter..."
+                        className="weather-add-form-input"
+                        autoFocus
+                    />
+                    <button type="submit" className="weather-add-form-btn" disabled={!searchCity.trim()}>
+                        <HiOutlinePlus />
+                    </button>
+                </form>
+            )}
+
+            {/* City cards */}
+            {savedCities.length === 0 ? (
+                <div className="weather-empty">
+                    <HiOutlineMapPin />
+                    <span>No cities added yet. Click "Add City" to get started.</span>
+                </div>
+            ) : (
+                <div className="weather-cards-grid">
+                    {savedCities.map(city => (
+                        <WeatherCard key={city} cityName={city} onRemove={handleRemoveCity} />
+                    ))}
                 </div>
             )}
         </div>

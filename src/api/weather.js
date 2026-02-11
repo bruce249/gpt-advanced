@@ -4,6 +4,7 @@
  */
 
 const WEATHER_STORAGE = 'gpt-advanced-weather-location';
+const SAVED_CITIES_STORAGE = 'gpt-advanced-saved-cities';
 
 export function loadWeatherLocation() {
     try {
@@ -13,6 +14,37 @@ export function loadWeatherLocation() {
 
 export function saveWeatherLocation(location) {
     localStorage.setItem(WEATHER_STORAGE, JSON.stringify(location));
+}
+
+/**
+ * Saved cities — persistent list of city names
+ */
+export function loadSavedCities() {
+    try {
+        return JSON.parse(localStorage.getItem(SAVED_CITIES_STORAGE) || '[]');
+    } catch { return []; }
+}
+
+export function saveCityList(cities) {
+    localStorage.setItem(SAVED_CITIES_STORAGE, JSON.stringify(cities));
+}
+
+export function addSavedCity(cityName) {
+    const cities = loadSavedCities();
+    const normalized = cityName.trim();
+    if (!normalized) return cities;
+    // Don't add duplicates (case-insensitive)
+    if (cities.some(c => c.toLowerCase() === normalized.toLowerCase())) return cities;
+    const updated = [...cities, normalized];
+    saveCityList(updated);
+    return updated;
+}
+
+export function removeSavedCity(cityName) {
+    const cities = loadSavedCities();
+    const updated = cities.filter(c => c.toLowerCase() !== cityName.toLowerCase());
+    saveCityList(updated);
+    return updated;
 }
 
 // WMO weather code → description & emoji icon

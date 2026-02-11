@@ -13,7 +13,9 @@ function getHFKey() {
     return null;
 }
 
-const SYSTEM_PROMPT = `You are GPT Advanced, a helpful, creative, and intelligent AI assistant. You provide clear, accurate, and detailed answers. Format your responses using Markdown when helpful.`;
+const SYSTEM_PROMPT = `You are GPT Advanced, a helpful, creative, and intelligent AI assistant. You provide clear, accurate, and detailed answers. Format your responses using Markdown when helpful.
+
+IMPORTANT: When answering questions about a topic, concept, or subject — wrap the most important key phrases, definitions, formulas, or critical facts in <mark> tags to highlight them like a revision marker. For example: <mark>The speed of light is approximately 3 × 10⁸ m/s</mark>. Only highlight truly important lines — not entire paragraphs. Do NOT use <mark> in code blocks. Use it sparingly (3-6 highlights per answer) for maximum impact.`;
 
 /**
  * Extract text from HF chat completion response (handles DeepSeek reasoning_content too)

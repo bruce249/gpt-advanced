@@ -219,6 +219,14 @@ export default function SettingsModal({ isOpen, onClose }) {
         setActiveProvider(id);
     };
 
+    const handleModelChange = (id, model) => {
+        const updated = keys.map(k =>
+            k.id === id ? { ...k, model } : k
+        );
+        setKeys(updated);
+        saveApiKeys(updated);
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -258,8 +266,19 @@ export default function SettingsModal({ isOpen, onClose }) {
                                             <div className="api-key-info">
                                                 <div className="api-key-label">{key.label}</div>
                                                 <div className="api-key-meta">
-                                                    {provider?.name || key.provider} · {key.model} · {key.apiKey.substring(0, 8)}...
+                                                    {provider?.name || key.provider} · {key.apiKey.substring(0, 8)}...
                                                 </div>
+                                                {provider?.models?.length > 0 && (
+                                                    <select
+                                                        className="api-key-model-select"
+                                                        value={key.model}
+                                                        onChange={e => handleModelChange(key.id, e.target.value)}
+                                                    >
+                                                        {provider.models.map(m => (
+                                                            <option key={m} value={m}>{m}</option>
+                                                        ))}
+                                                    </select>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="api-key-card-actions">
