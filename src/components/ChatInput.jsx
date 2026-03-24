@@ -1,20 +1,24 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
 import { HiOutlinePaperAirplane, HiOutlinePhoto, HiOutlineStop, HiOutlineDocumentPlus } from 'react-icons/hi2';
-import { IoClose, IoDocumentText } from 'react-icons/io5';
+import { IoClose, IoDocumentText, IoMicOutline, IoStop } from 'react-icons/io5';
 import { parseDocument, SUPPORTED_EXTENSIONS } from '../utils/documentParser.js';
 import { DocumentChips } from './DocumentPanel.jsx';
 import DocumentPanel from './DocumentPanel.jsx';
+import { startListening, isSpeechRecognitionSupported } from '../hooks/useVoice.js';
 
 export default function ChatInput({ prefillMessage, onPrefillUsed }) {
-    const { sendUserMessage, isStreaming, stopStreaming, activeConversationId, activeDocuments, addDocument, removeDocument } = useChat();
+    const { sendUserMessage, isStreaming, stopStreaming, activeConversationId, createConversation, activeDocuments, addDocument, removeDocument } = useChat();
     const [input, setInput] = useState('');
     const [imageData, setImageData] = useState(null);
     const [docLoading, setDocLoading] = useState(false);
     const [showDocPanel, setShowDocPanel] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+    const [voiceError, setVoiceError] = useState('');
     const textareaRef = useRef(null);
     const fileInputRef = useRef(null);
     const docInputRef = useRef(null);
+    const stopListeningRef = useRef(null);
 
     // Handle prefill from News "Ask AI" button
     useEffect(() => {
@@ -36,6 +40,11 @@ export default function ChatInput({ prefillMessage, onPrefillUsed }) {
         }
     }, [input]);
 
+    // Stop mic on unmount
+    useEffect(() => {
+        return () => stopListeningRef.current?.();
+    }, []);
+
     const handleSubmit = () => {
         const trimmed = input.trim();
         if ((!trimmed && !imageData) || isStreaming) return;
@@ -44,7 +53,6 @@ export default function ChatInput({ prefillMessage, onPrefillUsed }) {
         setInput('');
         setImageData(null);
 
-        // Reset textarea height
         if (textareaRef.current) {
             textareaRef.current.style.height = 'auto';
         }
@@ -78,8 +86,6 @@ export default function ChatInput({ prefillMessage, onPrefillUsed }) {
             });
         };
         reader.readAsDataURL(file);
-
-        // Reset file input
         e.target.value = '';
     };
 
@@ -88,15 +94,16 @@ export default function ChatInput({ prefillMessage, onPrefillUsed }) {
         if (files.length === 0) return;
 
         setDocLoading(true);
+
         let convId = activeConversationId;
+        if (!convId) {
+            convId = createConversation();
+        }
 
         for (const file of files) {
             try {
                 const doc = await parseDocument(file);
-                // If no conversation yet, we'll add docs once the message creates one
-                if (convId) {
-                    addDocument(convId, doc);
-                }
+                addDocument(convId, doc);
             } catch (err) {
                 alert(`Error parsing "${file.name}": ${err.message}`);
             }
@@ -112,9 +119,36 @@ export default function ChatInput({ prefillMessage, onPrefillUsed }) {
         }
     };
 
-    const removeImage = () => {
-        setImageData(null);
-    };
+    const removeImage = () => setImageData(null);
+
+    const handleVoiceToggle = useCallback(() => {
+        if (isListening) {
+            stopListeningRef.current?.();
+            setIsListening(false);
+            return;
+        }
+
+        setVoiceError('');
+        setIsListening(true);
+
+        const stop = startListening({
+            onResult: (transcript, isFinal) => {
+                setInput(transcript);
+                if (isFinal) {
+                    setIsListening(false);
+                }
+            },
+            onEnd: () => setIsListening(false),
+            onError: (msg) => {
+                setVoiceError(msg);
+                setIsListening(false);
+            },
+        });
+
+        stopListeningRef.current = stop;
+    }, [isListening]);
+
+    const speechSupported = isSpeechRecognitionSupported();
 
     return (
         <div className="chat-input-area">
@@ -139,6 +173,10 @@ export default function ChatInput({ prefillMessage, onPrefillUsed }) {
 
                 {activeDocuments.length > 0 && (
                     <DocumentChips documents={activeDocuments} onRemove={handleRemoveDoc} />
+                )}
+
+                {voiceError && (
+                    <div className="voice-error">{voiceError}</div>
                 )}
 
                 <div className={`chat-input-box ${imageData ? 'has-preview' : ''}`}>
@@ -188,6 +226,20 @@ export default function ChatInput({ prefillMessage, onPrefillUsed }) {
                                 <span className="doc-count-badge">{activeDocuments.length}</span>
                             </button>
                         )}
+                        {speechSupported && (
+                            <button
+                                className={`input-action-btn mic-btn ${isListening ? 'listening' : ''}`}
+                                onClick={handleVoiceToggle}
+                                title={isListening ? 'Stop recording' : 'Voice input'}
+                                disabled={isStreaming}
+                            >
+                                {isListening
+                                    ? <IoStop style={{ fontSize: '18px' }} />
+                                    : <IoMicOutline style={{ fontSize: '20px' }} />
+                                }
+                                {isListening && <span className="mic-pulse" />}
+                            </button>
+                        )}
                     </div>
                     <textarea
                         ref={textareaRef}
@@ -195,9 +247,13 @@ export default function ChatInput({ prefillMessage, onPrefillUsed }) {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder={activeDocuments.length > 0
-                            ? "Ask about your documents..."
-                            : "Message GPT Advanced..."}
+                        placeholder={
+                            isListening
+                                ? 'Listening...'
+                                : activeDocuments.length > 0
+                                    ? 'Ask about your documents...'
+                                    : 'Message GPT Advanced...'
+                        }
                         rows={1}
                         disabled={isStreaming}
                     />

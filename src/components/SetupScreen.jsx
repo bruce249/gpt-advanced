@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { HiOutlineSparkles, HiOutlineKey } from 'react-icons/hi2';
 import { PROVIDERS, saveApiKeys, setActiveProvider } from './SettingsModal.jsx';
 
-const QUICK_SETUP_PROVIDERS = ['openai', 'gemini', 'huggingface'];
+const QUICK_SETUP_PROVIDERS = ['openai', 'openrouter', 'gemini', 'huggingface'];
 
 export default function SetupScreen({ onComplete }) {
     const [selectedProvider, setSelectedProvider] = useState('openai');
@@ -40,6 +40,9 @@ export default function SetupScreen({ onComplete }) {
         } else if (selectedProvider === 'huggingface' && !apiKey.startsWith('hf_')) {
             isValid = false;
             setError('Hugging Face keys typically start with "hf_". Please check your key.');
+        } else if (selectedProvider === 'openrouter' && !apiKey.startsWith('sk-or-')) {
+            isValid = false;
+            setError('OpenRouter keys typically start with "sk-or-". Please check your key.');
         }
 
         if (!isValid) {
@@ -140,6 +143,9 @@ export default function SetupScreen({ onComplete }) {
                     <div className="setup-hint">
                         {selectedProvider === 'openai' && (
                             <span>Get your key at <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">platform.openai.com/api-keys</a></span>
+                        )}
+                        {selectedProvider === 'openrouter' && (
+                            <span>Get your key at <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">openrouter.ai/keys</a></span>
                         )}
                         {selectedProvider === 'gemini' && (
                             <span>Get your key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">aistudio.google.com/apikey</a></span>

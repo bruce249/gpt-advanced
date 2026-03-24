@@ -5,7 +5,9 @@ import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
 import { HiOutlineClipboard, HiOutlineCheck, HiOutlineUser } from 'react-icons/hi2';
 import { HiOutlineSparkles } from 'react-icons/hi2';
+import { IoVolumeHighOutline, IoStopCircleOutline } from 'react-icons/io5';
 import { useChat } from '../context/ChatContext.jsx';
+import { speak, stopSpeaking, isSpeechSynthesisSupported } from '../hooks/useVoice.js';
 
 export default function MessageBubble({ message, isStreaming, onTextSelect }) {
     const { getHighlightsForMessage } = useChat();
@@ -293,6 +295,7 @@ function CodeBlock({ className, children }) {
 
 function MessageActions({ content }) {
     const [copied, setCopied] = useState(false);
+    const [speaking, setSpeaking] = useState(false);
 
     const handleCopy = async () => {
         try {
@@ -304,11 +307,30 @@ function MessageActions({ content }) {
         }
     };
 
+    const handleSpeak = () => {
+        if (speaking) {
+            stopSpeaking();
+            setSpeaking(false);
+            return;
+        }
+        setSpeaking(true);
+        speak({ text: content, onEnd: () => setSpeaking(false) });
+    };
+
     return (
         <div className="message-actions">
             <button className="message-action-btn" onClick={handleCopy} title="Copy message">
                 {copied ? <HiOutlineCheck /> : <HiOutlineClipboard />}
             </button>
+            {isSpeechSynthesisSupported() && (
+                <button
+                    className={`message-action-btn ${speaking ? 'speaking' : ''}`}
+                    onClick={handleSpeak}
+                    title={speaking ? 'Stop reading' : 'Read aloud'}
+                >
+                    {speaking ? <IoStopCircleOutline /> : <IoVolumeHighOutline />}
+                </button>
+            )}
         </div>
     );
 }

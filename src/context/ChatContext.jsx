@@ -4,6 +4,7 @@ import { sendMessage, sendMessageWithImage, getMiniGptExplanation } from '../api
 import { sendMessageHF, getMiniGptExplanationHF } from '../api/huggingface.js';
 import { sendMessageOllama, sendMessageWithImageOllama, getMiniGptExplanationOllama, checkOllamaStatus, getBestModel } from '../api/ollama.js';
 import { sendMessageOpenAI, sendMessageWithImageOpenAI, getMiniGptExplanationOpenAI } from '../api/openai.js';
+import { sendMessageOpenRouter, getMiniGptExplanationOpenRouter } from '../api/openrouter.js';
 import { loadApiKeys, getActiveKey, getActiveProvider } from '../components/SettingsModal.jsx';
 import { buildDocumentContext } from '../utils/documentParser.js';
 
@@ -144,6 +145,8 @@ export function ChatProvider({ children }) {
                 return await sendMessageWithImageOllama(history, text, imageData, onChunk);
             }
             return await sendMessageOllama(history, text, onChunk);
+        } else if (provider === 'openrouter') {
+            return await sendMessageOpenRouter(apiKey, model, history, text, onChunk);
         }
 
         throw new Error(`Unknown provider: ${provider}`);
@@ -296,7 +299,7 @@ export function ChatProvider({ children }) {
             setIsStreaming(false);
             setStreamingText('');
         }
-    }, [activeConversationId, callProvider, generateTitle]);
+    }, [activeConversationId, allDocuments, callProvider, generateTitle]);
 
     const addHighlight = useCallback((conversationId, messageId, highlight) => {
         setConversations(prev => prev.map(c => {
@@ -326,6 +329,8 @@ export function ChatProvider({ children }) {
                 return await getMiniGptExplanationHF(selectedText, context);
             } else if (activeKey.provider === 'ollama') {
                 return await getMiniGptExplanationOllama(selectedText, context);
+            } else if (activeKey.provider === 'openrouter') {
+                return await getMiniGptExplanationOpenRouter(activeKey.apiKey, activeKey.model, selectedText, context);
             }
         } catch (err) {
             console.error('Mini GPT error:', err);

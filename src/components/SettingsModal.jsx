@@ -15,6 +15,44 @@ const PROVIDERS = {
         defaultModel: 'gpt-4o-mini',
         description: 'ChatGPT models — most capable',
     },
+    openrouter: {
+        name: 'OpenRouter',
+        icon: '🔀',
+        color: '#6366f1',
+        placeholder: 'sk-or-v1-...',
+        models: [
+            // Mistral
+            'mistralai/mistral-7b-instruct',
+            'mistralai/mistral-nemo',
+            'mistralai/mistral-small-3.1-24b-instruct',
+            // Google Gemma
+            'google/gemma-3-4b-it',
+            'google/gemma-3-12b-it',
+            'google/gemma-3-27b-it',
+            // Qwen
+            'qwen/qwen-2.5-7b-instruct',
+            'qwen/qwen-2.5-14b-instruct',
+            'qwen/qwen-2.5-72b-instruct',
+            'qwen/qwen3-8b',
+            'qwen/qwen3-14b',
+            // Microsoft Phi
+            'microsoft/phi-3.5-mini-128k-instruct',
+            'microsoft/phi-4-mini-instruct',
+            'microsoft/phi-4',
+            // Meta Llama
+            'meta-llama/llama-3.2-1b-instruct',
+            'meta-llama/llama-3.2-3b-instruct',
+            'meta-llama/llama-3.1-8b-instruct',
+            'meta-llama/llama-3.3-70b-instruct',
+            // DeepSeek
+            'deepseek/deepseek-r1-distill-llama-8b',
+            'deepseek/deepseek-r1-distill-qwen-14b',
+            // SmolLM / HuggingFace
+            'huggingfaceh4/zephyr-7b-beta',
+        ],
+        defaultModel: 'mistralai/mistral-7b-instruct',
+        description: 'Access 200+ models via one API',
+    },
     gemini: {
         name: 'Google Gemini',
         icon: '✨',
